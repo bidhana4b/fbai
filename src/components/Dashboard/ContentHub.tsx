@@ -51,11 +51,27 @@ const ContentHub = () => {
   const [generatedVariations, setGeneratedVariations] = useState<string[]>([]);
   const { toast } = useToast();
 
-  // Initialize Supabase client
-  const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_ANON_KEY,
-  );
+  // Initialize Supabase client with proper environment variable checks
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Supabase environment variables are not properly configured');
+    return (
+      <div className="p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Configuration Error</CardTitle>
+            <CardDescription>
+              Please ensure Supabase is properly connected. Click the "Connect to Supabase" button in the top right to set up your connection.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   // Function to generate caption using Gemini AI
   const generateCaption = async () => {
