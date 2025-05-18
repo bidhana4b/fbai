@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
 import {
   ImageIcon,
   MessageSquare,
@@ -30,12 +31,161 @@ import {
   CalendarIcon,
   RefreshCw,
   Settings2,
+  Loader2,
 } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 
 const ContentHub = () => {
   const [activeTab, setActiveTab] = useState("captions");
   const [captionText, setCaptionText] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("casual");
+  const [captionPrompt, setCaptionPrompt] = useState("");
+  const [imagePrompt, setImagePrompt] = useState("");
+  const [selectedTone, setSelectedTone] = useState("friendly");
+  const [selectedLength, setSelectedLength] = useState("medium");
+  const [selectedStyle, setSelectedStyle] = useState("realistic");
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState("square");
+  const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState("");
+  const [generatedVariations, setGeneratedVariations] = useState<string[]>([]);
+  const { toast } = useToast();
+
+  // Initialize Supabase client
+  const supabase = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY,
+  );
+
+  // Function to generate caption using Gemini AI
+  const generateCaption = async () => {
+    if (!captionPrompt.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a topic or prompt for your caption",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingCaption(true);
+
+    try {
+      // Call the Edge Function to generate caption
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-generate-caption",
+        {
+          body: {
+            prompt: captionPrompt,
+            maxTokens:
+              selectedLength === "short"
+                ? 100
+                : selectedLength === "medium"
+                  ? 200
+                  : 300,
+            temperature:
+              selectedTone === "formal"
+                ? 0.3
+                : selectedTone === "professional"
+                  ? 0.5
+                  : 0.8,
+          },
+        },
+      );
+
+      if (error) throw new Error(error.message);
+
+      if (data?.text) {
+        setCaptionText(data.text);
+        toast({
+          title: "Caption Generated",
+          description: "Your AI caption has been created successfully",
+        });
+      } else if (data?.error) {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error("Error generating caption:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate caption",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingCaption(false);
+    }
+  };
+
+  // Function to generate image using Gemini AI
+  const generateImage = async () => {
+    if (!imagePrompt.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a description for your image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingImage(true);
+
+    try {
+      // Determine dimensions based on aspect ratio
+      let width = 1024;
+      let height = 1024;
+
+      if (selectedAspectRatio === "portrait") {
+        width = 800;
+        height = 1000;
+      } else if (selectedAspectRatio === "landscape") {
+        width = 1280;
+        height = 720;
+      }
+
+      // Call the Edge Function to generate image
+      const { data, error } = await supabase.functions.invoke(
+        "generate-image",
+        {
+          body: {
+            prompt: `${selectedStyle} style image of ${imagePrompt}`,
+            width,
+            height,
+          },
+        },
+      );
+
+      if (error) throw new Error(error.message);
+
+      if (data?.imageUrl) {
+        setGeneratedImageUrl(data.imageUrl);
+
+        // Generate variations with different seeds for demonstration
+        const variations = [];
+        for (let i = 1; i <= 4; i++) {
+          variations.push(
+            `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(imagePrompt + i)}&width=${width}&height=${height}`,
+          );
+        }
+        setGeneratedVariations(variations);
+
+        toast({
+          title: "Image Generated",
+          description: "Your AI image has been created successfully",
+        });
+      } else if (data?.error) {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error("Error generating image:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
 
   // Mock data for templates
   const captionTemplates = [
@@ -166,7 +316,10 @@ const ContentHub = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Tone</label>
-                    <Select defaultValue="friendly">
+                    <Select
+                      value={selectedTone}
+                      onValueChange={setSelectedTone}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select tone" />
                       </SelectTrigger>
@@ -184,7 +337,10 @@ const ContentHub = () => {
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Length</label>
-                    <Select defaultValue="medium">
+                    <Select
+                      value={selectedLength}
+                      onValueChange={setSelectedLength}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select length" />
                       </SelectTrigger>
@@ -231,11 +387,35 @@ const ContentHub = () => {
                       </Badge>
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Topic or Prompt
+                    </label>
+                    <Input
+                      placeholder="Enter a topic for your caption..."
+                      value={captionPrompt}
+                      onChange={(e) => setCaptionPrompt(e.target.value)}
+                    />
+                  </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full">
-                    <Wand2Icon className="h-4 w-4 mr-2" />
-                    Generate Caption
+                  <Button
+                    className="w-full"
+                    onClick={generateCaption}
+                    disabled={isGeneratingCaption || !captionPrompt.trim()}
+                  >
+                    {isGeneratingCaption ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2Icon className="h-4 w-4 mr-2" />
+                        Generate Caption
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
@@ -283,8 +463,16 @@ const ContentHub = () => {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                  <Button variant="outline">
-                    <RefreshCw className="h-4 w-4 mr-2" />
+                  <Button
+                    variant="outline"
+                    onClick={generateCaption}
+                    disabled={isGeneratingCaption || !captionPrompt.trim()}
+                  >
+                    {isGeneratingCaption ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
                     Regenerate
                   </Button>
                   <div className="flex gap-2">
@@ -348,11 +536,16 @@ const ContentHub = () => {
                   <Textarea
                     placeholder="Describe the image you want to generate..."
                     className="min-h-[100px]"
+                    value={imagePrompt}
+                    onChange={(e) => setImagePrompt(e.target.value)}
                   />
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Style</label>
-                    <Select defaultValue="realistic">
+                    <Select
+                      value={selectedStyle}
+                      onValueChange={setSelectedStyle}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select style" />
                       </SelectTrigger>
@@ -368,7 +561,10 @@ const ContentHub = () => {
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Aspect Ratio</label>
-                    <Select defaultValue="square">
+                    <Select
+                      value={selectedAspectRatio}
+                      onValueChange={setSelectedAspectRatio}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select aspect ratio" />
                       </SelectTrigger>
@@ -383,9 +579,22 @@ const ContentHub = () => {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full">
-                    <Wand2Icon className="h-4 w-4 mr-2" />
-                    Generate Image
+                  <Button
+                    className="w-full"
+                    onClick={generateImage}
+                    disabled={isGeneratingImage || !imagePrompt.trim()}
+                  >
+                    {isGeneratingImage ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2Icon className="h-4 w-4 mr-2" />
+                        Generate Image
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
@@ -401,27 +610,61 @@ const ContentHub = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="bg-muted h-[400px] rounded-md flex items-center justify-center mb-4">
-                    <ImageIcon className="h-16 w-16 text-muted-foreground/50" />
+                    {generatedImageUrl ? (
+                      <img
+                        src={generatedImageUrl}
+                        alt="Generated image"
+                        className="h-full w-full object-contain rounded-md"
+                      />
+                    ) : (
+                      <ImageIcon className="h-16 w-16 text-muted-foreground/50" />
+                    )}
                   </div>
 
                   <div className="grid grid-cols-4 gap-2">
-                    <div className="bg-muted h-20 rounded-md flex items-center justify-center">
-                      <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
-                    </div>
-                    <div className="bg-muted h-20 rounded-md flex items-center justify-center">
-                      <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
-                    </div>
-                    <div className="bg-muted h-20 rounded-md flex items-center justify-center">
-                      <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
-                    </div>
-                    <div className="bg-muted h-20 rounded-md flex items-center justify-center">
-                      <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
-                    </div>
+                    {generatedVariations.length > 0 ? (
+                      generatedVariations.map((url, index) => (
+                        <div
+                          key={index}
+                          className="bg-muted h-20 rounded-md flex items-center justify-center overflow-hidden cursor-pointer"
+                          onClick={() => setGeneratedImageUrl(url)}
+                        >
+                          <img
+                            src={url}
+                            alt={`Variation ${index + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      <>
+                        <div className="bg-muted h-20 rounded-md flex items-center justify-center">
+                          <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
+                        </div>
+                        <div className="bg-muted h-20 rounded-md flex items-center justify-center">
+                          <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
+                        </div>
+                        <div className="bg-muted h-20 rounded-md flex items-center justify-center">
+                          <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
+                        </div>
+                        <div className="bg-muted h-20 rounded-md flex items-center justify-center">
+                          <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
+                        </div>
+                      </>
+                    )}
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                  <Button variant="outline">
-                    <RefreshCw className="h-4 w-4 mr-2" />
+                  <Button
+                    variant="outline"
+                    onClick={generateImage}
+                    disabled={isGeneratingImage || !imagePrompt.trim()}
+                  >
+                    {isGeneratingImage ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
                     Regenerate
                   </Button>
                   <div className="flex gap-2">

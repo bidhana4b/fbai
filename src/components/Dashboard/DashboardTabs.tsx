@@ -7,6 +7,10 @@ import {
   MessageSquare,
   BarChart3,
   Link,
+  Sparkles,
+  CreditCard,
+  Settings,
+  CheckCircle2,
 } from "lucide-react";
 
 interface TabItem {
@@ -31,6 +35,14 @@ const DashboardTabs: React.FC<DashboardTabsProps> = ({
     { id: "engagement", label: "Engagement", icon: MessageSquare },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "integration", label: "Integration", icon: Link },
+    { id: "dynamic", label: "Dynamic Enhancements", icon: Sparkles },
+    { id: "billing", label: "Billing", icon: CreditCard },
+    { id: "saas", label: "SaaS System", icon: Settings },
+    {
+      id: "implementation-status",
+      label: "Implementation Status",
+      icon: CheckCircle2,
+    },
   ];
 
   const handleTabChange = (value: string) => {
@@ -40,7 +52,7 @@ const DashboardTabs: React.FC<DashboardTabsProps> = ({
   return (
     <div className="w-full bg-background border-b">
       <Tabs
-        defaultValue={activeTab}
+        value={activeTab}
         onValueChange={handleTabChange}
         className="w-full"
       >

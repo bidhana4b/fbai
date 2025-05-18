@@ -14,6 +14,13 @@ import Sidebar from "./Dashboard/Sidebar";
 import ContentHub from "./Dashboard/ContentHub";
 import SchedulingCalendar from "./Dashboard/SchedulingCalendar";
 import DashboardTabs from "./Dashboard/DashboardTabs";
+import EngagementDashboard from "./Dashboard/EngagementDashboard";
+import AnalyticsCenter from "./Dashboard/AnalyticsCenter";
+import IntegrationPanel from "./Dashboard/IntegrationPanel";
+import DynamicEnhancements from "./Dashboard/DynamicEnhancements";
+import Billing from "./Dashboard/Billing";
+import SaasTransformation from "./Dashboard/SaasTransformation";
+import ImplementationStatus from "./ImplementationStatus";
 
 interface MetricCardProps {
   title: string;
@@ -182,22 +189,9 @@ const Home = () => {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-6">
-          <DashboardTabs />
+          <DashboardTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-          <Tabs
-            defaultValue="dashboard"
-            className="mt-6"
-            onValueChange={setActiveTab}
-          >
-            <TabsList className="mb-6">
-              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-              <TabsTrigger value="content-hub">Content Hub</TabsTrigger>
-              <TabsTrigger value="scheduling">Scheduling</TabsTrigger>
-              <TabsTrigger value="engagement">Engagement</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-              <TabsTrigger value="integration">Integration</TabsTrigger>
-            </TabsList>
-
+          <Tabs value={activeTab} className="mt-6" onValueChange={setActiveTab}>
             <TabsContent value="dashboard">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 {metrics.map((metric, index) => (
@@ -231,53 +225,36 @@ const Home = () => {
               <ContentHub />
             </TabsContent>
 
-            <TabsContent value="scheduling">
+            <TabsContent value="calendar">
               <SchedulingCalendar />
             </TabsContent>
 
             <TabsContent value="engagement">
-              <Card className="bg-white">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Engagement Dashboard
-                  </h3>
-                  <div className="h-96 flex items-center justify-center border border-dashed rounded-md">
-                    <p className="text-muted-foreground">
-                      Engagement dashboard content will be displayed here
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <EngagementDashboard />
             </TabsContent>
 
             <TabsContent value="analytics">
-              <Card className="bg-white">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Analytics Center
-                  </h3>
-                  <div className="h-96 flex items-center justify-center border border-dashed rounded-md">
-                    <p className="text-muted-foreground">
-                      Analytics content will be displayed here
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <AnalyticsCenter />
             </TabsContent>
 
             <TabsContent value="integration">
-              <Card className="bg-white">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">
-                    Integration Panel
-                  </h3>
-                  <div className="h-96 flex items-center justify-center border border-dashed rounded-md">
-                    <p className="text-muted-foreground">
-                      Integration options will be displayed here
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <IntegrationPanel />
+            </TabsContent>
+
+            <TabsContent value="dynamic">
+              <DynamicEnhancements />
+            </TabsContent>
+
+            <TabsContent value="billing">
+              <Billing />
+            </TabsContent>
+
+            <TabsContent value="saas">
+              <SaasTransformation />
+            </TabsContent>
+
+            <TabsContent value="implementation-status">
+              <ImplementationStatus />
             </TabsContent>
           </Tabs>
         </main>
