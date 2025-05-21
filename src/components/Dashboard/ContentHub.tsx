@@ -1,27 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/lib/auth";
+import { FeatureFlag } from "@/types/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import {
   ImageIcon,
@@ -56,16 +59,20 @@ const ContentHub = () => {
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Supabase environment variables are not properly configured');
     return (
       <div className="p-6">
         <Card>
           <CardHeader>
-            <CardTitle>Configuration Error</CardTitle>
+            <CardTitle>Configuration Required</CardTitle>
             <CardDescription>
-              Please ensure Supabase is properly connected. Click the "Connect to Supabase" button in the top right to set up your connection.
+              Please connect to Supabase by clicking the "Connect to Supabase" button in the top right corner. This will help you set up your environment variables.
             </CardDescription>
           </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Once connected, you'll be able to use all features of the Content Hub.
+            </p>
+          </CardContent>
         </Card>
       </div>
     );
@@ -332,46 +339,30 @@ const ContentHub = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Tone</label>
-                    <Select
+                    <select
                       value={selectedTone}
-                      onValueChange={setSelectedTone}
+                      onChange={(e) => setSelectedTone(e.target.value)}
+                      className="w-full p-2 border rounded-md"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select tone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="friendly">Friendly</SelectItem>
-                        <SelectItem value="professional">
-                          Professional
-                        </SelectItem>
-                        <SelectItem value="casual">Casual</SelectItem>
-                        <SelectItem value="humorous">Humorous</SelectItem>
-                        <SelectItem value="formal">Formal</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="friendly">Friendly</option>
+                      <option value="professional">Professional</option>
+                      <option value="casual">Casual</option>
+                      <option value="humorous">Humorous</option>
+                      <option value="formal">Formal</option>
+                    </select>
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Length</label>
-                    <Select
+                    <select
                       value={selectedLength}
-                      onValueChange={setSelectedLength}
+                      onChange={(e) => setSelectedLength(e.target.value)}
+                      className="w-full p-2 border rounded-md"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select length" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="short">
-                          Short (1-2 sentences)
-                        </SelectItem>
-                        <SelectItem value="medium">
-                          Medium (3-4 sentences)
-                        </SelectItem>
-                        <SelectItem value="long">
-                          Long (5+ sentences)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="short">Short (1-2 sentences)</option>
+                      <option value="medium">Medium (3-4 sentences)</option>
+                      <option value="long">Long (5+ sentences)</option>
+                    </select>
                   </div>
 
                   <div className="space-y-2">
@@ -457,10 +448,7 @@ const ContentHub = () => {
                     <h3 className="text-sm font-medium mb-2">Post Preview</h3>
                     <div className="border rounded-md p-4 bg-background">
                       <div className="flex items-center gap-3 mb-3">
-                        <Avatar>
-                          <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=business" />
-                          <AvatarFallback>BP</AvatarFallback>
-                        </Avatar>
+                        <div className="w-10 h-10 rounded-full bg-gray-200"></div>
                         <div>
                           <div className="font-medium">Business Page</div>
                           <div className="text-xs text-muted-foreground">
@@ -558,40 +546,30 @@ const ContentHub = () => {
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Style</label>
-                    <Select
+                    <select
                       value={selectedStyle}
-                      onValueChange={setSelectedStyle}
+                      onChange={(e) => setSelectedStyle(e.target.value)}
+                      className="w-full p-2 border rounded-md"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="realistic">Realistic</SelectItem>
-                        <SelectItem value="cartoon">Cartoon</SelectItem>
-                        <SelectItem value="abstract">Abstract</SelectItem>
-                        <SelectItem value="minimalist">Minimalist</SelectItem>
-                        <SelectItem value="3d">3D Rendered</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="realistic">Realistic</option>
+                      <option value="cartoon">Cartoon</option>
+                      <option value="abstract">Abstract</option>
+                      <option value="minimalist">Minimalist</option>
+                      <option value="3d">3D Rendered</option>
+                    </select>
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Aspect Ratio</label>
-                    <Select
+                    <select
                       value={selectedAspectRatio}
-                      onValueChange={setSelectedAspectRatio}
+                      onChange={(e) => setSelectedAspectRatio(e.target.value)}
+                      className="w-full p-2 border rounded-md"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select aspect ratio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="square">Square (1:1)</SelectItem>
-                        <SelectItem value="portrait">Portrait (4:5)</SelectItem>
-                        <SelectItem value="landscape">
-                          Landscape (16:9)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="square">Square (1:1)</option>
+                      <option value="portrait">Portrait (4:5)</option>
+                      <option value="landscape">Landscape (16:9)</option>
+                    </select>
                   </div>
                 </CardContent>
                 <CardFooter>
